@@ -10,8 +10,10 @@ interface ImageWorkerEnv {
 
 interface ImageResponse {
   data?: Array<{ b64_json?: string }>;
-  error?: { code?: string; param?: string };
+  error?: { code?: string; param?: string; message?: string };
 }
+
+const IMAGE_MODEL = "gpt-image-2.6-sunburst";
 
 function createImageServer(env: ImageWorkerEnv, origin: string) {
   const server = new McpServer({
@@ -42,7 +44,7 @@ function createImageServer(env: ImageWorkerEnv, origin: string) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-image-2.5-sunburst",
+          model: IMAGE_MODEL,
           prompt,
           size,
           n: 1,
@@ -53,16 +55,18 @@ function createImageServer(env: ImageWorkerEnv, origin: string) {
       const result = await response.json<ImageResponse>().catch(() => null);
 
       if (!response.ok) {
-        const details = [result?.error?.code, result?.error?.param]
+        const details = [result?.error?.code, result?.error?.param, result?.error?.message]
           .filter(Boolean)
-          .join(", ");
+          .join(" | ");
 
         return {
           isError: true,
-          content: [{
-            type: "text",
-            text: `OpenAI Images API: HTTP ${response.status}${details ? ` (${details})` : ""}.`,
-          }],
+          content: [
+            {
+              type: "text",
+              text: `OpenAI Images API: HTTP ${response.status}${details ? ` (${details})` : ""}. Модель: ${IMAGE_MODEL}.`,
+            },
+          ],
         };
       }
 
