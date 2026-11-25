@@ -10,7 +10,7 @@ interface ImageWorkerEnv {
 
 interface ImageResponse {
   data?: Array<{ b64_json?: string }>;
-  error?: { code?: string };
+  error?: { code?: string; param?: string };
 }
 
 function createImageServer(env: ImageWorkerEnv, origin: string) {
@@ -42,7 +42,7 @@ function createImageServer(env: ImageWorkerEnv, origin: string) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-image-1",
+          model: "gpt-image-2.5-sunburst",
           prompt,
           size,
           n: 1,
@@ -53,12 +53,15 @@ function createImageServer(env: ImageWorkerEnv, origin: string) {
       const result = await response.json<ImageResponse>().catch(() => null);
 
       if (!response.ok) {
-        const code = result?.error?.code;
+        const details = [result?.error?.code, result?.error?.param]
+          .filter(Boolean)
+          .join(", ");
+
         return {
           isError: true,
           content: [{
             type: "text",
-            text: `OpenAI Images API: HTTP ${response.status}${code ? ` (${code})` : ""}.`,
+            text: `OpenAI Images API: HTTP ${response.status}${details ? ` (${details})` : ""}.`,
           }],
         };
       }
